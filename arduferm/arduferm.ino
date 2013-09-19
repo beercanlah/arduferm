@@ -5,7 +5,7 @@
 #include <avr/pgmspace.h>
 
 // Pin layout
-const byte compressorPin = 2;
+const byte compressorPin = 3;
 const byte incrSetPointPin = 7;
 const byte decrSetPointPin = 6;
 
@@ -28,10 +28,6 @@ boolean beenCooling = LOW;
 boolean needCooling = LOW;
 boolean canCool = HIGH;
 unsigned long coolingStarted;
-const unsigned long starterPeriod = 500;
-boolean starting = LOW;
-int starterMeasurement;
-int maxStarterMeasurement;
 
 
 boolean inGracePeriod = LOW;
@@ -108,7 +104,6 @@ void setup() {
   digitalWrite(decrSetPointPin, HIGH);
 
   // Relays
-  pinMode(starterPin, OUTPUT);
   pinMode(compressorPin, OUTPUT);
 
   // LCD screen
@@ -131,7 +126,7 @@ void loop() {
     if (inGracePeriod) {
       // If the grace period is over reset boolean
       if (currentMillis - gracePeriodStart > gracePeriod) {
-	inGracePeriod = LOW;
+    	inGracePeriod = LOW;
       }
     }
 
@@ -139,10 +134,9 @@ void loop() {
     if (inCooldownPeriod) {
       // If the grace period is over reset boolean
       if (currentMillis - cooldownPeriodStart > cooldownPeriod) {
-	inCooldownPeriod = LOW;
+    	inCooldownPeriod = LOW;
       }
     }
-    
 
     // Temperature measurement
     int temperature = getTemperature();
@@ -151,34 +145,34 @@ void loop() {
     // When a button has been pressed, go and
     // change the setpoint
     if ((digitalRead(incrSetPointPin) == LOW) || \
-	(digitalRead(decrSetPointPin) == LOW))
+    	(digitalRead(decrSetPointPin) == LOW))
       {
-	// Figure out by how much to change setpoint
-	// If buttons pressed down, then increment a lot
-	int increment;
-	if (pressCount > 10) {
-	  increment = 10;
-	}
-	else {
-	  increment = 1;
-	}
+    	// Figure out by how much to change setpoint
+    	// If buttons pressed down, then increment a lot
+    	int increment;
+    	if (pressCount > 10) {
+    	  increment = 10;
+    	}
+    	else {
+    	  increment = 1;
+    	}
 
-	// Now increment / decrement according to
-	// which button has been pressed
-	if(digitalRead(incrSetPointPin) == LOW) {
-	  setPoint += increment;
-	}
-	if(digitalRead(decrSetPointPin) == LOW) {
-	  setPoint -= increment;
-	}
-	pressCount++;
+    	// Now increment / decrement according to
+    	// which button has been pressed
+    	if(digitalRead(incrSetPointPin) == LOW) {
+    	  setPoint += increment;
+    	}
+    	if(digitalRead(decrSetPointPin) == LOW) {
+    	  setPoint -= increment;
+    	}
+    	pressCount++;
       }
     else {
       pressCount = 0;
     }
 
     // Figure out whether you need cooling or not
-    // Assume you can cool and then check whether 
+    // Assume you can cool and then check whether
     // anything forbids you to cool.
     // After that check whether you really need to
     // cool
@@ -196,10 +190,10 @@ void loop() {
       // the temperature is not yet enough
       // below the set point, keep cooling
       if (temperature > setPoint - 10) {
-	needCooling = HIGH;
+    	needCooling = HIGH;
       }
       else {
-	needCooling = LOW;
+    	needCooling = LOW;
       }
     }
     else {
@@ -207,10 +201,10 @@ void loop() {
       // temperature is high enough above setpoint
       // keep cooling
       if (temperature > setPoint + 10) {
-	needCooling = HIGH;
+    	needCooling = HIGH;
       }
       else {
-	needCooling = LOW;
+    	needCooling = LOW;
       }
     }
 
@@ -218,15 +212,15 @@ void loop() {
     if (needCooling && canCool) {
       // If you just started cooling, write down time
       if (!beenCooling) {
-	coolingStarted = currentMillis;
+    	coolingStarted = currentMillis;
       }
 
       // Check whether you have been cooling for to long
       if (currentMillis - coolingStarted > maxCoolingPeriod) {
-	// The following will trigger to go into noon cooling state
-	// in the next iteration of the main loop
-	inCooldownPeriod = HIGH;
-	cooldownPeriodStart = currentMillis;
+    	// The following will trigger to go into noon cooling state
+    	// in the next iteration of the main loop
+    	inCooldownPeriod = HIGH;
+    	cooldownPeriodStart = currentMillis;
       }
       
       digitalWrite(compressorPin, HIGH);
@@ -237,14 +231,13 @@ void loop() {
       // If you just came here from cooling state
       // Trigger grace period or cooldown period
       if (beenCooling) {
-	if (inCooldownPeriod) {
-	  // Nothing all set in previous loop
-	}
-	else {
-	  gracePeriodStart = currentMillis;
-	  inGracePeriod = HIGH;
-	}
-	maxStarterMeasurement = 0;
+    	if (inCooldownPeriod) {
+    	  // Nothing all set in previous loop
+    	}
+    	else {
+    	  gracePeriodStart = currentMillis;
+    	  inGracePeriod = HIGH;
+    	}
       }
       digitalWrite(compressorPin, LOW);
       beenCooling = LOW;
@@ -276,37 +269,27 @@ void loop() {
     lcd.print("                ");
     lcd.setCursor(0,1);
     if (beenCooling) {
-      if (starting) {
-	lcd.print("Starting ");
-	lcd.print(maxStarterMeasurement);
-      }
-      else{
-	lcd.print("Cooling ah");
-	lcd.print(starterMeasurement);
-	//writeCountdown((currentMillis - coolingStarted)/1000, 5, 11, 1);
-      }
+  	lcd.print("Cooling ah");
+  	//writeCountdown((currentMillis - coolingStarted)/1000, 5, 11, 1);
     }
     else {
       if (inGracePeriod) {
-	lcd.print("Cannot cool");
-	writeCountdown((gracePeriodStart + gracePeriod - \
-			currentMillis) / 1000, 5, 11, 1);
+  	lcd.print("Cannot cool");
+  	writeCountdown((gracePeriodStart + gracePeriod - \
+  			currentMillis) / 1000, 5, 11, 1);
       }
       else if (inCooldownPeriod)
       {
-	lcd.print("Too hot ah");
-	writeCountdown((cooldownPeriodStart + cooldownPeriod - \
-			currentMillis) / 1000, 5, 11, 1);
-      }
-      else if (errorDetected) {
-	lcd.print("Retreat!Retreat!");
+  	lcd.print("Too hot ah");
+  	writeCountdown((cooldownPeriodStart + cooldownPeriod - \
+  			currentMillis) / 1000, 5, 11, 1);
       }
       else {
-	lcd.print("Cool enough alr!");
+  	lcd.print("Cool enough alr!");
       }
     }
     previousMillis = currentMillis;
-
+    
   } // End main loop if
 }
 
